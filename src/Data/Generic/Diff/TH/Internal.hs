@@ -10,6 +10,7 @@ import Data.Generic.Diff.TH.Conversion
 import Data.Maybe(fromMaybe)
 import Data.Word
 import Data.Int
+import Data.Char (isAlphaNum, ord)
 
 -- | Default primitives and expressions for showing them
 defaultPrimitives :: [(Name, TH.Exp)]
@@ -191,9 +192,11 @@ makeGDiffWith familyPrefix constructorRenamer primitives name = do
 -- | Default constructor renamer. Using the family suffix, the
 --   name of the constructor and the specialized type of constructor
 defaultConstructorRenamer :: String -> Name -> TH.Type -> Q Name
-defaultConstructorRenamer prefix n typ = return . mkName $ 
-        filter (\x -> x /= '[' && x /= ']') $ prefix ++ 
+defaultConstructorRenamer prefix n typ = return . mkName $
+        concatMap esc $ prefix ++
            typToString typ ++ prettifyName n ++ "C"
+  where
+    esc x = if isAlphaNum x then [x] else (show (ord x))
 
 -- | Default suffix for the family "Family"
 defaultFamSuffix :: String
