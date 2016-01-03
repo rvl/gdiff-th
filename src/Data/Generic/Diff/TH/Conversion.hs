@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell, CPP #-}
-{-# OPTIONS_GHC -pgmPcpphs  -optP--cpp #-}
 module Data.Generic.Diff.TH.Conversion where
 import Data.Generic.Diff.TH.Types
 import qualified Language.Haskell.TH as TH
@@ -12,7 +10,7 @@ isPrimitive primitives = flip elem primitives
 -- TODO rename hardness
 toConHardness :: [Name] -> TH.Type -> FamConType
 toConHardness prims x = case x of
-    ConT name 
+    ConT name
         | isPrimitive prims name -> Abstract
         | otherwise              -> Concrete
     _ -> Concrete
@@ -24,18 +22,16 @@ typToString x = case x of
     AppT a b        -> typToString a ++ typToString b
     ConT n          -> prettifyName n
     TupleT c        -> "Tuple" ++ show c
-#if __GLASGOW_HASKELL__ > 700
     UnboxedTupleT c -> "UnboxedTupleT" ++ show c
-#endif
     ListT           -> "List"
     _               -> error $ "Unsupported type in " ++ show x
 
 prettifyName :: Name -> String
-prettifyName n 
+prettifyName n
     | n == '(:)  = "Cons"
     | n == '[] = "Nils"
     | nameBase n == "()" = "Unit"
---    | isTuple $ nameBase n = "Tuple" 
+--    | isTuple $ nameBase n = "Tuple"
     | otherwise          = nameBase n
 
 
@@ -48,10 +44,10 @@ toFamCon :: (Name -> Type -> Q Name) -> TH.Type -> (Maybe TH.Con) -> Q FamCon
 toFamCon renamer typ x = do
     case x of
         Just con -> do
-           let (n, fields) = getNameAndFields con 
-           newN <- renamer n typ   
-           return $ FamCon Concrete newN n fields 
-        Nothing -> do 
+           let (n, fields) = getNameAndFields con
+           newN <- renamer n typ
+           return $ FamCon Concrete newN n fields
+        Nothing -> do
            let n = getConName typ
            newN <- renamer n typ
            return $ FamCon Abstract newN n [typ]
@@ -72,12 +68,12 @@ toFamType prims renamer (t, x) = case x of
     e                    -> error $ "unsuppored Dec: " ++ show e
 
 toFamType' :: [Name] -> (Name -> Type -> Q Name) -> TH.Type -> [TH.Con] -> Q FamType
-toFamType' prims renamer typ cons = do 
+toFamType' prims renamer typ cons = do
     let hardness = toConHardness prims typ
     let consOrType = case hardness of
                         Concrete -> map Just cons
-                        Abstract -> [Nothing] 
-    FamType typ <$> mapM (toFamCon renamer typ) consOrType 
+                        Abstract -> [Nothing]
+    FamType typ <$> mapM (toFamCon renamer typ) consOrType
 
 toFam :: [Name] -> (Name -> Type -> Q Name) -> Name -> [(TH.Type, Dec)] -> Q Fam
 toFam prims renamer name decs = Fam name <$> mapM (toFamType prims renamer) decs

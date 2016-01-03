@@ -7,8 +7,6 @@ import Data.Generic.Diff.TH
 import Data.Generic.Diff as G
 import Control.Applicative
 import Utils
-import Control.DeepSeq
-import Control.DeepSeq.TH
 
 makeGDiff ''Module
 

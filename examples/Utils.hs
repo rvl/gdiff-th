@@ -1,6 +1,8 @@
 {-# LANGUAGE GADTs, KindSignatures, RankNTypes #-}
 module Utils where
 import Data.Generic.Diff   -- (EditScript(..), diff, Type, compress)
+
+{-
 import System.Console.Terminfo.Color
 import Text.PrettyPrint.Free hiding (parens)
 import System.Console.Terminfo.PrettyPrint
@@ -19,3 +21,8 @@ pprEdits x = case x of
     Del c d   -> (with (Foreground Red)   . text $ "- " ++ string c) <+> pprEdits d
     Ins c d   -> (with (Foreground Green) . text $ "+ " ++ string c) <+> pprEdits d
     End       -> line
+
+-}
+
+showCompressed :: Family f => EditScriptL f txs tys -> IO ()
+showCompressed = putStrLn . show

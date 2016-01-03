@@ -1,16 +1,10 @@
-{-# LANGUAGE TemplateHaskell, TupleSections, CPP #-}
-{-# OPTIONS_GHC -pgmPcpphs  -optP--cpp #-}
 module Data.Generic.Diff.TH.Specialize where
 import Language.Haskell.TH
 import Data.Generics.Uniplate.Data (childrenBi, transformBi, transformBiM)
 import Data.Maybe (fromMaybe, maybeToList)
 import Control.Monad.Reader
 import Control.Monad.State
-#if __GLASGOW_HASKELL__ < 704
-import Control.Applicative ((<$>), Applicative(..))
-#else
 import Control.Applicative ((<$>))
-#endif
 import Data.List  (nub)
 import Language.Haskell.TH.Ppr (split)
 import Data.Traversable (traverse)
@@ -22,12 +16,6 @@ specialize n = nub <$> evalStateT (specializeChildDecs [] n) []
 
 type Context = StateT [([Type], Name)] Q
 
-#if __GLASGOW_HASKELL__ < 704
-instance Applicative Q where
-    pure  = return
-    (<*>) = ap 
-#endif
-
 --This is the main recursive function
 specializeChildDecs :: [Type] -> Name -> Context [(Type, Dec)]
 specializeChildDecs args n = do
@@ -35,9 +23,9 @@ specializeChildDecs args n = do
     let go x = case x of
           a@(AppT _ _) -> uncurry specializeChildDecs . collectArgs $ a
           ConT conName -> specializeChildDecs [] conName
-          TupleT 0     -> fmap (maybeToList . fmap (ConT $ mkName "()",))  
+          TupleT 0     -> fmap (maybeToList . fmap (ConT $ mkName "()",))
                             (reifyDecOnce [] $ mkName "()")
-          _            -> return [] 
+          _            -> return []
 
     mdec <- reifyDecOnce args n
     case mdec of
@@ -53,10 +41,10 @@ specializeChildDecs args n = do
 --I also expand the type synonym here
 reifyDecOnce :: [Type]-> Name -> Context (Maybe Dec)
 reifyDecOnce ts n = do
-    env <- get 
-    if (ts, n) `elem` env 
+    env <- get
+    if (ts, n) `elem` env
         then return Nothing
-        else do 
+        else do
           modify ((ts, n):)
           lift $ traverse expandTypes =<< reifyDec n
 
@@ -73,8 +61,8 @@ substTypes ts dec = result where
    m = zip tyvars ts
 
    go x = case x of
-     oldT@(VarT n) -> fromMaybe oldT (lookup n m)  
-     t -> t  
+     oldT@(VarT n) -> fromMaybe oldT (lookup n m)
+     t -> t
 
    result = transformBi go dec
 --   result = transformBi (subst' $ map (second Just) m) dec
@@ -105,14 +93,12 @@ getTypeName :: Type -> Name
 getTypeName x = case x of
         ConT n -> n
         TupleT c          -> mkName $ "(" ++ replicate (c - 1) ',' ++ ")"
-#if __GLASGOW_HASKELL__ > 700
         UnboxedTupleT c   -> mkName $ "(" ++ replicate c ',' ++ ")"
-#endif
         ListT             -> ''[]
         _ -> error $ show x ++ " is not a ConT"
 
 collectArgs :: Type -> ([Type], Name)
-collectArgs = swap . first getTypeName . split 
+collectArgs = swap . first getTypeName . split
 
 swap :: (a, b) -> (b, a)
 swap (x, y) = (y, x)
